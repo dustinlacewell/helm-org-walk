@@ -1,0 +1,17 @@
+* org-olp
+
+This module provides some helpful elisp functions for working with org "olp" paths.
+
+** =org-olp-visit= (file-name olp)
+Visit header pointed to by =olp= in =filename=
+
+** =org-olp-select= (file-name olp)
+Select from the children of the header pointed to by =olp= in =filename= then visit
+selection.
+
+** =org-olp-make-olp= (file-name)
+Select headings from =file-name=, from top-level, until a header with no children is
+reached. An olp list is returned.
+
+** =org-olp-jump= (file-name)
+Runs =org-olp-select= on a file, then visits the selected heading.
