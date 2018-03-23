@@ -168,5 +168,5 @@
 
 ** provides
 #+begin_src emacs-lisp
-  (provides 'org-olp)
+  (provide 'org-olp)
 #+end_src
