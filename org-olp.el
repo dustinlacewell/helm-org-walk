@@ -130,4 +130,4 @@ heading."
         (olp (apply 'org-olp-make-olp file-name olp)))
     (org-olp--goto file-name olp)))
 
-(provides 'org-olp)
+(provide 'org-olp)
