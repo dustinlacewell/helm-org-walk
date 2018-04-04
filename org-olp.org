@@ -1,4 +1,4 @@
-* org-olp :experimental:
+* org-olp                                                                              :experimental:
 ** preamble
 #+begin_src emacs-lisp
   ;;; org-olp.el --- Helpful olp functions
@@ -90,8 +90,10 @@
 *** org-olp--file-olp-subheadings
 #+begin_src emacs-lisp
   (defun org-olp--file-olp-subheadings (file-name olp)
-    (find-file (expand-file-name file-name))
-    (org-olp--olp-subheadings olp))
+    (with-temp-buffer
+      (insert-file-contents (expand-file-name file-name))
+      (org-mode)
+      (org-olp--olp-subheadings olp)))
 #+end_src
 
 *** org-olp--pick-olp
@@ -107,8 +109,6 @@
               (org-olp--pick-olp file-name children olp)
             olp))))
 #+end_src
-
-*** org-olp--goto
 
 ** public
 *** org-olp-visit
@@ -127,21 +127,28 @@
 *** org-olp-select
 #+begin_src emacs-lisp
   (defun org-olp-select (file olp)
-    "Select child heading of heading pointed to by OLP in FILENAME
-  then visit selection."
+    "Select and return olp of child of heading pointed to by OLP in FILE-NAME"
     (let* ((file-name (expand-file-name file))
            (candidates (org-olp--file-olp-subheadings file olp))
            (prompt (s-join " " olp))
-           (selection (completing-read prompt candidates))
-           (olp (append olp (list selection))))
-      (org-olp-visit file-name olp)))
+           (selection (completing-read prompt candidates)))
+      (append olp (list selection))))
 #+end_src
 
-*** org-olp-make-olp
+*** org-olp-select-then-visit
 #+begin_src emacs-lisp
-  (defun org-olp-make-olp (file-name &rest olp)
-    "Select headings from =file-name=, from top-level, until a header
-  with no children is reached. An olp list is returned."
+  (defun org-olp-select-then-visit (file-name olp)
+    "Run org-olp-select then visit the resulting olp in FILE-NAME"
+    (let ((selected-olp (org-olp-select file-name olp)))
+      (org-olp-visit file-name selected-olp)))
+#+end_src
+
+*** org-olp-recursive-select
+#+begin_src emacs-lisp
+  (defun org-olp-recursive-select (file-name &rest olp)
+    "Select headings from FILE-NAME, from OLP or top-level, until
+       a heading with no children is reached. The resulting olp is
+       returned."
     (let* ((file-name (expand-file-name file-name)))
       (with-temp-buffer
         (insert-file-contents file-name)
@@ -156,14 +163,14 @@
             (org-olp--pick-olp file-name children olp))))))
 #+end_src
 
-*** org-olp-jump
+*** org-olp-find
 #+begin_src emacs-lisp
-  (defun org-olp-jump (file-name &rest olp)
-    "Run org-olp-select on FILE-NAME then visit the selected
-  heading."
+  (defun org-olp-find (file-name &rest olp)
+    "Run org-olp-recursive-select on FILE-NAME, starting from OLP
+  or top-level, then visit the selected heading."
     (let ((file-name (expand-file-name file-name))
-          (olp (apply 'org-olp-make-olp file-name olp)))
-      (org-olp--goto file-name olp)))
+          (olp (apply 'org-olp-recursive-select file-name olp)))
+      (org-olp-visit file-name olp)))
 #+end_src
 
 ** provides
