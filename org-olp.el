@@ -130,7 +130,10 @@ heading."
         (olp (apply 'org-olp-make-olp file-name olp)))
     (org-olp--goto file-name olp)))
 
-(defun org-olp-refile (file-name olp-src olp-dst)
+
+;; This refiling approach is more raw and is not prefered.
+;; It also doesn't feature any level-adapting logic.
+(defun org-olp-refile--old (file-name olp-src olp-dst)
   "This function takes a filename and two olp paths it uses the
 org-element api to remove the heading specified by the first olp and
 then inserts the element *under* the heading pointed to by the second olp
@@ -150,6 +153,55 @@ then inserts the element *under* the heading pointed to by the second olp
       (insert "\n")
       (yank)
       )
+    ))
+
+
+
+(defun org-olp-refile (file-name olp-src olp-dst)
+  "This function takes a filename and two olp paths it uses the
+org-element api to remove the heading specified by the first olp and
+then inserts the element *under* the heading pointed to by the second olp
+"
+  (progn
+    (org-olp-visit file-name olp-src)
+    (let ((src-level (org-element-property :level (org-element-at-point))))
+      (org-cut-subtree)
+      (org-olp-visit file-name olp-dst)
+      (let ((dst-level (org-element-property :level (org-element-at-point)))
+            (dst-contents-end (org-element-property :contents-end (org-element-at-point)))
+            )
+        (cond ((= src-level (+ dst-level 1)) (progn
+                                               (message "[DBG] same level")
+                                               (if dst-contents-end
+                                                   (progn
+                                                     (message "[DBG] not eof")
+                                                     ;; not EOF
+                                                     (goto-char dst-contents-end)
+                                                     (org-paste-subtree)
+                                                     )
+                                                 (progn
+                                                   ;; EOF
+                                                   (message "[DBG] eof")
+                                                   (next-line)
+                                                   (org-paste-subtree)
+                                                   (beginning-of-line)
+                                                   (org-demote-subtree)
+                                                   ))
+                                               ))
+              ((> src-level (+ dst-level 1)) (progn
+                                               (message "[DBG] higher level")
+                                               (org-next-visible-heading 1)
+                                               (org-paste-subtree)
+                                               ))
+              ((< src-level (+ dst-level 1)) (progn
+                                               (message "[DBG] lower level")
+                                               (goto-char dst-contents-end)
+                                               (org-paste-subtree)
+                                               ;; (previous-line)
+                                               (org-demote-subtree)
+                                               ))
+              )
+        ))
     ))
 
 (provide 'org-olp)
