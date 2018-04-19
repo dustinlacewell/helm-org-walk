@@ -130,4 +130,26 @@ heading."
         (olp (apply 'org-olp-make-olp file-name olp)))
     (org-olp--goto file-name olp)))
 
+(defun org-olp-refile (file-name olp-src olp-dst)
+  "This function takes a filename and two olp paths it uses the
+org-element api to remove the heading specified by the first olp and
+then inserts the element *under* the heading pointed to by the second olp
+"
+  (progn
+    (org-olp-visit file-name olp-src)
+    ;; identify beginning and end points of the current org element
+    ;; "cut" the current element into the kill ring
+    ;; seek to the other element and yank(paste) the contents of the kill ring
+    ;; after that heading
+    (let ((p-begin (org-element-property :begin (org-element-at-point) ))
+          (p-end   (org-element-property :end (org-element-at-point)))
+          )
+      (kill-region p-begin p-end)
+      (org-olp-visit file-name olp-dst)
+      (end-of-line)
+      (insert "\n")
+      (yank)
+      )
+    ))
+
 (provide 'org-olp)
