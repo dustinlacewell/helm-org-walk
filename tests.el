@@ -7,7 +7,7 @@
 ;; Add the current path to load paths so we can load org-olp from here
 (add-to-list 'load-path ".")
 ;;;; Use a custom version of org-mode
-(add-to-list 'load-path "~/sources/olp/org-mode/lisp")
+;; (add-to-list 'load-path "~/sources/olp/org-mode/lisp")
 
 (require 'ert)
 (require 'org)
@@ -15,8 +15,7 @@
 
 ;; This is actually in place to make the tests pass
 ;; even though a bug surfaced in org-mode itself.
-;; The bug in org-mode surfaced on 9.1.6 but does is not
-;; present on 8.2.10
+;; The bug is present in 9.1.6 but not in 8.2.10
 ;;
 ;; Bug description: the org-paste-subtree function inserts leading whitespace
 ;; into the contents of the subtree. The reasonable expectation here is that
@@ -28,8 +27,9 @@
   )
 
 (defun test-refile-helper (input out-file olp-src olp-dst)
-  ;; write input data on disk
-  (with-temp-buffer (insert input) (write-file out-file nil)
+  (with-temp-buffer (insert input)
+                    ;; write input data on disk
+                    (write-file out-file nil)
                     ;; run our refiling routine
                     (org-olp-refile out-file olp-src olp-dst)
                     ;; save modified org file to disk in the same location
