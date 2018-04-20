@@ -11,9 +11,6 @@ Run org-olp-select then visit the resulting olp in FILE-NAME
 ** =org-olp-recursive-select= (file-name &rest olp)
 Select headings from FILE-NAME, from OLP or top-level, until a heading with no
 children is reached. The resulting olp is returned.
-** =org-olp-jump= (file-name &rest olp)
-Run org-olp-recursive-select on FILE-NAME, starting from OLP or top-level, then visit
-the selected heading.
 ** =org-olp-find= (file-name &rest olp)
 Run org-olp-recursive-select on FILE-NAME, starting from OLP or
 top-level, then visit the selected heading.
