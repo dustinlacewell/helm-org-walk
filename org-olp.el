@@ -167,10 +167,9 @@ then inserts the element *under* the heading pointed to by the second olp
                                                ))
               ((< src-level (+ dst-level 1)) (progn
                                                (message "[DBG] lower level")
-                                               (goto-char dst-contents-end)
-                                               (org-paste-subtree)
-                                               ;; (previous-line)
-                                               (org-demote-subtree)
+                                               (org-olp--goto-end)
+                                               (insert "\n")
+                                               (org-paste-subtree (+ dst-level 1))
                                                ))
               )
         ))
