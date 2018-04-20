@@ -14,3 +14,10 @@ children is reached. The resulting olp is returned.
 ** =org-olp-jump= (file-name &rest olp)
 Run org-olp-recursive-select on FILE-NAME, starting from OLP or top-level, then visit
 the selected heading.
+** =org-olp-find= (file-name &rest olp)
+Run org-olp-recursive-select on FILE-NAME, starting from OLP or
+top-level, then visit the selected heading.
+** =org-olp-refile= (file-name olp-src olp-dst)
+This function takes a filename and two olp paths it uses the
+org-element api to remove the heading specified by the first olp and
+then inserts the element *under* the heading pointed to by the second olp
