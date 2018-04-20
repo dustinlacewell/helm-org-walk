@@ -7,7 +7,7 @@
 ;; Add the current path to load paths so we can load org-olp from here
 (add-to-list 'load-path ".")
 ;;;; Use a custom version of org-mode
-;; (add-to-list 'load-path "~/sources/olp/org-mode/lisp")
+(add-to-list 'load-path "~/sources/olp/org-mode/lisp")
 
 (require 'ert)
 (require 'org)
@@ -59,11 +59,14 @@ content12
 ** a13
 content14
 * a2
+a2
 ")
            (expected "* a1
 ** a13
 content14
 * a2
+a2
+
 ** a12
 content12
 ")
@@ -95,8 +98,6 @@ content153
 content154
 ")
            (expected "* a1
-** a151
-content151
 ** a12
 content12
 ** a13
@@ -111,6 +112,9 @@ content152
 content153
 *** a154
 content154
+
+** a151
+content151
 ")
            (output (test-refile-helper input "/tmp/f1.org" (list "a1" "a15" "a151") (list "a1")))
            )

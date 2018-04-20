@@ -131,11 +131,20 @@ heading."
     (org-olp--goto file-name olp)))
 
 
+
+;; either go to the end of line or to the end of the content for that element
+(defun org-olp--goto-end ()
+  (let ((cend (org-element-property :contents-end (org-element-at-point))))
+    (goto-char (if cend cend (point-at-eol)))
+    ))
+
+
 (defun org-olp-refile (file-name olp-src olp-dst)
   "This function takes a filename and two olp paths it uses the
 org-element api to remove the heading specified by the first olp and
 then inserts the element *under* the heading pointed to by the second olp
 "
+
   (progn
     (org-olp-visit file-name olp-src)
     (let ((src-level (org-element-property :level (org-element-at-point))))
@@ -146,26 +155,15 @@ then inserts the element *under* the heading pointed to by the second olp
             )
         (cond ((= src-level (+ dst-level 1)) (progn
                                                (message "[DBG] same level")
-                                               (if dst-contents-end
-                                                   (progn
-                                                     (message "[DBG] not eof")
-                                                     ;; not EOF
-                                                     (goto-char dst-contents-end)
-                                                     (org-paste-subtree)
-                                                     )
-                                                 (progn
-                                                   ;; EOF
-                                                   (message "[DBG] eof")
-                                                   (next-line)
-                                                   (org-paste-subtree)
-                                                   (beginning-of-line)
-                                                   (org-demote-subtree)
-                                                   ))
+                                               (org-olp--goto-end)
+                                               (insert "\n")
+                                               (org-paste-subtree (+ dst-level 1))
                                                ))
               ((> src-level (+ dst-level 1)) (progn
                                                (message "[DBG] higher level")
-                                               (org-next-visible-heading 1)
-                                               (org-paste-subtree)
+                                               (org-olp--goto-end)
+                                               (insert "\n")
+                                               (org-paste-subtree (+ dst-level 1))
                                                ))
               ((< src-level (+ dst-level 1)) (progn
                                                (message "[DBG] lower level")
