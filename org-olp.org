@@ -109,7 +109,14 @@
               (org-olp--pick-olp file-name children olp)
             olp))))
 #+end_src
-
+*** org-olp--goto-end
+#+begin_src emacs-lisp
+(defun org-olp--goto-end ()
+  "Either go to the end of line or to the end of the content for that element"
+  (let ((cend (org-element-property :contents-end (org-element-at-point))))
+    (goto-char (if cend cend (point-at-eol)))
+    ))
+#+end_src
 ** public
 *** org-olp-visit
 #+begin_src emacs-lisp
@@ -172,7 +179,41 @@
           (olp (apply 'org-olp-recursive-select file-name olp)))
       (org-olp-visit file-name olp)))
 #+end_src
+*** org-olp-refile
+#+BEGIN_SRC emacs-lisp
+(defun org-olp-refile (file-name olp-src olp-dst)
+  "This function takes a filename and two olp paths it uses the
+org-element api to remove the heading specified by the first olp and
+then inserts the element *under* the heading pointed to by the second olp
+"
 
+  (progn
+    (org-olp-visit file-name olp-src)
+    (let ((src-level (org-element-property :level (org-element-at-point))))
+      (org-cut-subtree)
+      (org-olp-visit file-name olp-dst)
+      (let ((dst-level (org-element-property :level (org-element-at-point)))
+            (dst-contents-end (org-element-property :contents-end (org-element-at-point)))
+            )
+        (cond ((= src-level (+ dst-level 1)) (progn
+                                               (org-olp--goto-end)
+                                               (insert "\n")
+                                               (org-paste-subtree (+ dst-level 1))
+                                               ))
+              ((> src-level (+ dst-level 1)) (progn
+                                               (org-olp--goto-end)
+                                               (insert "\n")
+                                               (org-paste-subtree (+ dst-level 1))
+                                               ))
+              ((< src-level (+ dst-level 1)) (progn
+                                               (org-olp--goto-end)
+                                               (insert "\n")
+                                               (org-paste-subtree (+ dst-level 1))
+                                               ))
+              )
+        ))
+    ))
+#+END_SRC
 ** provides
 #+begin_src emacs-lisp
   (provide 'org-olp)

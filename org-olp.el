@@ -1,3 +1,4 @@
+
 ;;; org-olp.el --- Helpful olp functions
 
 ;; Author: Dustin Lacewell <dlacewell@gmail.com>
@@ -73,8 +74,10 @@ subheading subtrees."
   (org-olp--subheadings-at-point))
 
 (defun org-olp--file-olp-subheadings (file-name olp)
-  (find-file (expand-file-name file-name))
-  (org-olp--olp-subheadings olp))
+  (with-temp-buffer
+    (insert-file-contents (expand-file-name file-name))
+    (org-mode)
+    (org-olp--olp-subheadings olp)))
 
 (defun org-olp--pick-olp (file-name children olp)
   (with-temp-buffer
@@ -87,6 +90,12 @@ subheading subtrees."
             (org-olp--pick-olp file-name children olp)
           olp))))
 
+(defun org-olp--goto-end ()
+  "Either go to the end of line or to the end of the content for that element"
+  (let ((cend (org-element-property :contents-end (org-element-at-point))))
+    (goto-char (if cend cend (point-at-eol)))
+    ))
+
 (defun org-olp-visit (file-name olp)
   "Visit the heading in FILE-NAME denoted by OLP"
   (find-file (expand-file-name file-name))
@@ -98,18 +107,22 @@ subheading subtrees."
   (call-interactively 'recenter-top-bottom))
 
 (defun org-olp-select (file olp)
-  "Select child heading of heading pointed to by OLP in FILENAME
-then visit selection."
+  "Select and return olp of child of heading pointed to by OLP in FILE-NAME"
   (let* ((file-name (expand-file-name file))
          (candidates (org-olp--file-olp-subheadings file olp))
          (prompt (s-join " " olp))
-         (selection (completing-read prompt candidates))
-         (olp (append olp (list selection))))
-    (org-olp-visit file-name olp)))
+         (selection (completing-read prompt candidates)))
+    (append olp (list selection))))
 
-(defun org-olp-make-olp (file-name &rest olp)
-  "Select headings from =file-name=, from top-level, until a header
-with no children is reached. An olp list is returned."
+(defun org-olp-select-then-visit (file-name olp)
+  "Run org-olp-select then visit the resulting olp in FILE-NAME"
+  (let ((selected-olp (org-olp-select file-name olp)))
+    (org-olp-visit file-name selected-olp)))
+
+(defun org-olp-recursive-select (file-name &rest olp)
+  "Select headings from FILE-NAME, from OLP or top-level, until
+     a heading with no children is reached. The resulting olp is
+     returned."
   (let* ((file-name (expand-file-name file-name)))
     (with-temp-buffer
       (insert-file-contents file-name)
@@ -123,21 +136,12 @@ with no children is reached. An olp list is returned."
                (children (org-olp--olp-subheadings olp)))
           (org-olp--pick-olp file-name children olp))))))
 
-(defun org-olp-jump (file-name &rest olp)
-  "Run org-olp-select on FILE-NAME then visit the selected
-heading."
+(defun org-olp-find (file-name &rest olp)
+  "Run org-olp-recursive-select on FILE-NAME, starting from OLP
+or top-level, then visit the selected heading."
   (let ((file-name (expand-file-name file-name))
-        (olp (apply 'org-olp-make-olp file-name olp)))
-    (org-olp--goto file-name olp)))
-
-
-
-;; either go to the end of line or to the end of the content for that element
-(defun org-olp--goto-end ()
-  (let ((cend (org-element-property :contents-end (org-element-at-point))))
-    (goto-char (if cend cend (point-at-eol)))
-    ))
-
+        (olp (apply 'org-olp-recursive-select file-name olp)))
+    (org-olp-visit file-name olp)))
 
 (defun org-olp-refile (file-name olp-src olp-dst)
   "This function takes a filename and two olp paths it uses the
@@ -154,19 +158,16 @@ then inserts the element *under* the heading pointed to by the second olp
             (dst-contents-end (org-element-property :contents-end (org-element-at-point)))
             )
         (cond ((= src-level (+ dst-level 1)) (progn
-                                               (message "[DBG] same level")
                                                (org-olp--goto-end)
                                                (insert "\n")
                                                (org-paste-subtree (+ dst-level 1))
                                                ))
               ((> src-level (+ dst-level 1)) (progn
-                                               (message "[DBG] higher level")
                                                (org-olp--goto-end)
                                                (insert "\n")
                                                (org-paste-subtree (+ dst-level 1))
                                                ))
               ((< src-level (+ dst-level 1)) (progn
-                                               (message "[DBG] lower level")
                                                (org-olp--goto-end)
                                                (insert "\n")
                                                (org-paste-subtree (+ dst-level 1))
