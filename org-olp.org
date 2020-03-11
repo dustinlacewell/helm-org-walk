@@ -1,4 +1,4 @@
-* org-olp                                                                              :experimental:
+* org-olp                                                                                            :experimental:
 ** preamble
 #+begin_src emacs-lisp
   ;;; org-olp.el --- Helpful olp functions
@@ -42,7 +42,7 @@
 
 #+end_src
 
-** private
+** boilerplate
 *** org-olp--matches-in-buffer
 #+begin_src emacs-lisp
   (defun org-olp--matches-in-buffer (regexp &optional buffer)
@@ -62,9 +62,8 @@
 *** org-olp--subheadings-at-point
 #+begin_src emacs-lisp
   (defun org-olp--subheadings-at-point (&optional recursive)
-    "Return a list of subheadings.
-  If RECURSIVE is truthy return a list of all headings in
-  subheading subtrees."
+    "Return a list of subheadings. If RECURSIVE is truthy return a
+     list of all headings in subheading subtrees."
     (org-save-outline-visibility t
       (save-excursion
         (let ((pred (lambda () (org-entry-get nil "ITEM"))))
@@ -96,6 +95,16 @@
       (org-olp--olp-subheadings olp)))
 #+end_src
 
+*** org-olp--goto-end
+#+begin_src emacs-lisp
+(defun org-olp--goto-end ()
+  "Either go to the end of line or to the end of the content for that element"
+  (let ((cend (org-element-property :contents-end (org-element-at-point))))
+    (goto-char (if cend cend (point-at-eol)))
+    ))
+#+end_src
+
+** helm boilerplate
 *** org-olp--pick-olp
 #+begin_src emacs-lisp
   (defun org-olp--pick-olp (file-name children olp)
@@ -109,14 +118,37 @@
               (org-olp--pick-olp file-name children olp)
             olp))))
 #+end_src
-*** org-olp--goto-end
+
+*** org-olp--candidates
 #+begin_src emacs-lisp
-(defun org-olp--goto-end ()
-  "Either go to the end of line or to the end of the content for that element"
-  (let ((cend (org-element-property :contents-end (org-element-at-point))))
-    (goto-char (if cend cend (point-at-eol)))
-    ))
+  (defun org-olp--candidates (file-name &optional olp)
+    (if olp
+        (let ((file-name (expand-file-name file-name)))
+          (org-olp--file-olp-subheadings file-name olp))
+      (with-temp-buffer
+        (find-file file-name)
+        (org-olp--matches-in-buffer "^\\*[ ]+\\(.+\\)$"))))
 #+end_src
+
+*** org-olp--helm-visit-action
+#+begin_src emacs-lisp
+  (defun org-olp--helm-visit-action (file-name olp)
+    `("Visit" .
+      (lambda (selection)
+        (let ((olp (append ',olp (list selection))))
+          (org-olp-visit ,file-name olp)))))
+#+end_src
+
+*** org-olp--helm-select
+#+begin_src emacs-lisp
+  (defun org-olp--helm-select (file-name &optional olp)
+    (helm
+     :candidate-number-limit nil
+     :sources (helm-build-sync-source "olp"
+                :action (list (org-olp--helm-visit-action file-name olp))
+                :candidates (org-olp--candidates file-name olp))))
+#+end_src
+
 ** public
 *** org-olp-visit
 #+begin_src emacs-lisp
@@ -133,12 +165,9 @@
 
 *** org-olp-select
 #+begin_src emacs-lisp
-  (defun org-olp-select (file olp)
+  (defun org-olp-select (file-name &optional olp)
     "Select and return olp of child of heading pointed to by OLP in FILE-NAME"
-    (let* ((file-name (expand-file-name file))
-           (candidates (org-olp--file-olp-subheadings file olp))
-           (prompt (s-join " " olp))
-           (selection (completing-read prompt candidates)))
+    (let* ((selection (org-olp--helm-select file-name olp)))
       (append olp (list selection))))
 #+end_src
 
@@ -179,6 +208,7 @@
           (olp (apply 'org-olp-recursive-select file-name olp)))
       (org-olp-visit file-name olp)))
 #+end_src
+
 *** org-olp-refile
 #+BEGIN_SRC emacs-lisp
 (defun org-olp-refile (file-name olp-src olp-dst)
@@ -214,7 +244,9 @@ then inserts the element *under* the heading pointed to by the second olp
         ))
     ))
 #+END_SRC
+
 ** provides
 #+begin_src emacs-lisp
   (provide 'org-olp)
 #+end_src
+

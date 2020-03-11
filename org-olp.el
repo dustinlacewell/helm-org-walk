@@ -1,4 +1,3 @@
-
 ;;; org-olp.el --- Helpful olp functions
 
 ;; Author: Dustin Lacewell <dlacewell@gmail.com>
@@ -52,9 +51,8 @@
       matches)))
 
 (defun org-olp--subheadings-at-point (&optional recursive)
-  "Return a list of subheadings.
-If RECURSIVE is truthy return a list of all headings in
-subheading subtrees."
+  "Return a list of subheadings. If RECURSIVE is truthy return a
+   list of all headings in subheading subtrees."
   (org-save-outline-visibility t
     (save-excursion
       (let ((pred (lambda () (org-entry-get nil "ITEM"))))
@@ -79,6 +77,12 @@ subheading subtrees."
     (org-mode)
     (org-olp--olp-subheadings olp)))
 
+(defun org-olp--goto-end ()
+  "Either go to the end of line or to the end of the content for that element"
+  (let ((cend (org-element-property :contents-end (org-element-at-point))))
+    (goto-char (if cend cend (point-at-eol)))
+    ))
+
 (defun org-olp--pick-olp (file-name children olp)
   (with-temp-buffer
       (insert-file-contents file-name)
@@ -90,11 +94,27 @@ subheading subtrees."
             (org-olp--pick-olp file-name children olp)
           olp))))
 
-(defun org-olp--goto-end ()
-  "Either go to the end of line or to the end of the content for that element"
-  (let ((cend (org-element-property :contents-end (org-element-at-point))))
-    (goto-char (if cend cend (point-at-eol)))
-    ))
+(defun org-olp--candidates (file-name &optional olp)
+  (if olp
+      (let ((file-name (expand-filename file)))
+        (org-olp--file-olp-subheadings
+         (expand-file-name file) olp))
+    (with-temp-buffer
+      (find-file file)
+      (org-olp--matches-in-buffer "^\\*[ ]+\\(.+\\)$"))))
+
+(defun org-olp--helm-visit-action (file-name olp)
+  `("Visit" .
+    (lambda (selection)
+      (let ((olp (append ',olp (list selection))))
+        (org-olp-visit ,file-name olp)))))
+
+(defun org-olp--helm-select (file-name &optional olp)
+  (helm
+   :candidate-number-limit nil
+   :sources (helm-build-sync-source "olp"
+              :action (list (org-olp--helm-visit-action file-name olp))
+              :candidates (org-olp--candidates file-name olp))))
 
 (defun org-olp-visit (file-name olp)
   "Visit the heading in FILE-NAME denoted by OLP"
@@ -106,12 +126,9 @@ subheading subtrees."
   (call-interactively 'org-cycle)
   (call-interactively 'recenter-top-bottom))
 
-(defun org-olp-select (file olp)
+(defun org-olp-select (file-name &optional olp)
   "Select and return olp of child of heading pointed to by OLP in FILE-NAME"
-  (let* ((file-name (expand-file-name file))
-         (candidates (org-olp--file-olp-subheadings file olp))
-         (prompt (s-join " " olp))
-         (selection (completing-read prompt candidates)))
+  (let* ((selection (org-olp--helm-select file-name olp)))
     (append olp (list selection))))
 
 (defun org-olp-select-then-visit (file-name olp)
