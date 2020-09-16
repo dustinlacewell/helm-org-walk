@@ -89,11 +89,8 @@
     (goto-char (if cend cend (point-at-eol)))
     ))
 
-(defun org-olp--pick-olp (file-name &optional olp children)
-  (with-temp-buffer
-    (insert-file-contents file-name)
-    (org-mode)
-    (-let* ((olp (if olp olp (org-olp--pick-top-level-heading)))
+(defun org-olp--run-pick (&optional olp children)
+  (-let* ((olp (if olp olp (org-olp--pick-top-level-heading)))
             (children (if children children (org-olp--olp-subheadings olp)))
             (actions `(("Default" . (lambda (c) `(nil ,c)))
                        ("Visit" . (lambda (c) `(t ,c)))
@@ -107,49 +104,50 @@
             (children (if selection (org-olp--olp-subheadings olp) children)))
 
       (if (and children (not abort))
-          (org-olp--pick-olp file-name olp children)
-        olp))))
+          (org-olp--run-pick olp children)
+        olp)))
 
-;; (org-olp--pick-olp "/home/ldlework/org/notes.org")
+(cl-defun org-olp--pick-olp (&key file-name olp children)
+  (if file-name
+      (with-temp-buffer
+        (insert-file-contents file-name)
+        (org-mode)
+        (org-olp--run-pick olp children))
+    (org-olp--run-pick olp children)))
 
-(defun org-olp-jump (olp)
-  "Jump to heading in current buffer denoted by OLP"
-  (goto-char (org-find-olp olp t)))
+;; (org-olp--pick-olp :file-name "/home/ldlework/org/notes.org")
 
-(defun org-olp-visit (file-name olp)
+(defun org-olp--select-agenda-file (&optional prompt)
+  (completing-read (or prompt "Select file: ") org-agenda-files))
+
+(cl-defun org-olp-visit (olp &optional file-name)
   "Visit the heading in FILE-NAME denoted by OLP"
-  (let ((marker (org-find-olp `(,file-name ,@olp))))
+  (let ((marker (if file-name
+                    (org-find-olp `(,file-name ,@olp))
+                  (org-find-olp olp t))))
     (switch-to-buffer (marker-buffer marker))
     (goto-char marker)
     (call-interactively 'recenter-top-bottom)))
 
-(defun org-olp-select (file-name &rest olp)
+(cl-defun org-olp-select (&key file-name olp)
   "Select headings from FILE-NAME, from OLP or top-level, until
      a heading with no children is reached. The resulting olp is
      returned."
-  (org-olp--pick-olp file-name olp))
+  (org-olp--pick-olp :file-name file-name :olp olp))
 
-(defun org-olp-find (file-name &rest olp)
-  "Run org-olp-recursive-select on FILE-NAME, starting from OLP
-or top-level, then visit the selected heading."
-  (let ((file-name (expand-file-name file-name))
-        (olp (apply 'org-olp-recursive-select file-name olp)))
-    (org-olp-visit file-name olp)))
-
-(defun org-olp-refile (file-name olp-src olp-dst)
+(defun org-olp-refile (src-file-name olp-src dst-file-name olp-dst)
   "This function takes a filename and two olp paths it uses the
 org-element api to remove the heading specified by the first olp and
 then inserts the element *under* the heading pointed to by the second olp
 "
 
   (progn
-    (org-olp-visit file-name olp-src)
+    (org-olp-visit olp-src src-file-name)
     (let ((src-level (org-element-property :level (org-element-at-point))))
       (org-cut-subtree)
-      (org-olp-visit file-name olp-dst)
+      (org-olp-visit olp-dst dst-file-name)
       (let ((dst-level (org-element-property :level (org-element-at-point)))
-            (dst-contents-end (org-element-property :contents-end (org-element-at-point)))
-            )
+            (dst-contents-end (org-element-property :contents-end (org-element-at-point))))
         (cond ((= src-level (+ dst-level 1)) (progn
                                                (org-olp--goto-end)
                                                (insert "\n")
@@ -169,8 +167,24 @@ then inserts the element *under* the heading pointed to by the second olp
         ))
     ))
 
+(cl-defun org-olp-find (&key file-name olp)
+  "Run org-olp-recursive-select on FILE-NAME, starting from OLP
+or top-level, then visit the selected heading."
+  (interactive)
+  (org-olp-visit (org-olp-select :file-name file-name :olp olp) file-name))
+
 (defun org-olp-at-point ()
   (interactive)
   (org-get-outline-path t t))
+
+(defun org-olp-refile-this (arg)
+  (interactive "P")
+  (let* ((src-file-name (buffer-file-name))
+         (src-olp (org-olp-at-point))
+         (dst-file-name (if (and arg (listp arg))
+                            (org-olp--select-agenda-file)
+                          src-file-name))
+         (dst-olp (org-olp-select :file-name dst-file-name)))
+    (org-olp-refile src-file-name src-olp dst-file-name dst-olp)))
 
 (provide 'org-olp)
