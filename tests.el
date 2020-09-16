@@ -75,9 +75,9 @@ content222")
 
 
 (defun test-refile-helper (olp-src olp-dst)
-  (with-org-file
+  (with-org-buffer
    ;; run our refiling routine
-   (org-olp-refile file-name olp-src olp-dst)
+   (org-olp-refile nil olp-src nil olp-dst)
    ;; modified-contents
    (org-olp--olp-subheadings olp-dst)))
 
