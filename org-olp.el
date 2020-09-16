@@ -120,6 +120,12 @@
 (defun org-olp--select-agenda-file (&optional prompt)
   (completing-read (or prompt "Select file: ") org-agenda-files))
 
+(defun org-olp--resolve-file-name (arg file-name)
+  (if file-name file-name
+    (if (and arg (listp arg))
+        (org-olp--select-agenda-file)
+      nil)))
+
 (cl-defun org-olp-visit (olp &optional file-name)
   "Visit the heading in FILE-NAME denoted by OLP"
   (let ((marker (if file-name
@@ -167,11 +173,13 @@ then inserts the element *under* the heading pointed to by the second olp
         ))
     ))
 
-(cl-defun org-olp-find (&key file-name olp)
+(cl-defun org-olp-find (arg &key file-name olp)
   "Run org-olp-recursive-select on FILE-NAME, starting from OLP
 or top-level, then visit the selected heading."
-  (interactive)
-  (org-olp-visit (org-olp-select :file-name file-name :olp olp) file-name))
+  (interactive "P")
+  (let* ((file-name (org-olp--resolve-file-name arg file-name))
+         (olp (org-olp-select :file-name file-name :olp olp)))
+    (org-olp-visit olp file-name)))
 
 (defun org-olp-at-point ()
   (interactive)

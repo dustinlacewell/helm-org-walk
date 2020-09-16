@@ -156,6 +156,15 @@
     (completing-read (or prompt "Select file: ") org-agenda-files))
 #+end_src
 
+*** org-olp--resolve-file-name
+#+begin_src emacs-lisp
+  (defun org-olp--resolve-file-name (arg file-name)
+    (if file-name file-name
+      (if (and arg (listp arg))
+          (org-olp--select-agenda-file)
+        nil)))
+#+end_src
+
 ** api
 *** org-olp-visit
 #+begin_src emacs-lisp
@@ -216,11 +225,13 @@
 ** commands
 *** org-olp-find
 #+begin_src emacs-lisp
-  (cl-defun org-olp-find (&key file-name olp)
+  (cl-defun org-olp-find (arg &key file-name olp)
     "Run org-olp-recursive-select on FILE-NAME, starting from OLP
   or top-level, then visit the selected heading."
-    (interactive)
-    (org-olp-visit (org-olp-select :file-name file-name :olp olp) file-name))
+    (interactive "P")
+    (let* ((file-name (org-olp--resolve-file-name arg file-name))
+           (olp (org-olp-select :file-name file-name :olp olp)))
+      (org-olp-visit olp file-name)))
 #+end_src
 
 *** org-olp-at-point
