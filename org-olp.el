@@ -3,7 +3,7 @@
 ;; Author: Dustin Lacewell <dlacewell@gmail.com>
 ;; Version: 0.1.0
 ;; Keywords: org-mode olp
-
+;; Package-Requires: ((emacs "24") (helm "0") (org "0"))
 ;; This is free and unencumbered software released into the public domain.
 
 ;; Anyone is free to copy, modify, publish, use, compile, sell, or
@@ -31,11 +31,14 @@
 
 ;;; Commentary:
 
-;; Helpful olp functions
+;; Helpful olp commands
 ;;
-;; See documentation at https://github.com/dustinlacewell/org-olp#functions
+;; See documentation at https://github.com/dustinlacewell/org-olp
 
 ;;; Code:
+(require 'cl-lib)
+(require 'helm)
+(require 'org)
 
 (defmacro org-olp--with-buffer (file-name &rest body)
   "Open a temporary buffer with the contents of FILE-NAME and
