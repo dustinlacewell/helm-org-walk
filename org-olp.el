@@ -97,49 +97,101 @@ execute BODY forms."
     (goto-char (if cend cend (point-at-eol)))
     ))
 
-(defun org-olp--select-agenda-file (&optional prompt)
-  "Select a file from org-agenda-files using PROMPT"
-  (let ((file-name (completing-read (or prompt "Select file: ") org-agenda-files)))
-    (if (not (file-exists-p file-name))
-        (concat org-directory file-name ".org")
-      file-name)))
+(cl-defun org-olp--select-next-action ((path pick))
+  (let* ((full-path (f-join org-directory (eval `(apply 'f-join (list ,@path ,pick))))))
+    (if (f-exists? full-path)
+        (if (f-directory? full-path)
+            (org-olp--select-file (append path (list pick)))
+          full-path)
+      full-path)))
 
-(cl-defun org-olp--helm-next ((file-name olp pick))
+(cl-defun org-olp--select-previous-action ((path pick))
+  (let ((path (butlast path)))
+    (org-olp--select-file path)))
+
+(defun org-olp--select-abort-action (_) nil)
+
+(setq org-olp--select-actions
+      '(("Select" . org-olp--select-next-action)
+        ("Previous" . org-olp--select-previous-action)
+        ("Abort" . org-olp--select-abort-action)))
+
+(defun org-olp--select-next ()
+  (interactive
+   (helm-exit-and-execute-action 'org-olp--select-next-action)))
+
+(defun org-olp--select-previous ()
+  (interactive
+   (helm-exit-and-execute-action 'org-olp--select-previous-action)))
+
+(defun org-olp--select-abort ()
+  (interactive)
+  (helm-exit-and-execute-action 'org-olp--select-abort-action))
+
+(setq helm-org-olp-select-map
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map helm-map)
+    (define-key map (kbd "C-<backspace>") 'org-olp--select-previous)
+    (define-key map (kbd "C-g") 'org-olp--select-abort)
+    map))
+
+(defun org-olp--select-file (&optional start-path)
+  (interactive)
+  (let* ((root-path (apply 'f-join org-directory start-path))
+         (paths (f-glob "*" root-path))
+         (directories (--filter (and (f-directory? it)
+                                     (not (s-starts-with? "." (f-base it))))
+                                paths))
+         (directory-candidates (--map (cons (concat (f-base it) "/")
+                                            (list start-path (f-base it)))
+                                      directories))
+         (files (-filter 'f-file? paths))
+         (file-candidates (--map (cons (f-filename it)
+                                       (list start-path (f-filename it)))
+                                 files))
+         (candidates (append directory-candidates file-candidates))
+         (sources (helm-build-sync-source root-path
+                    :candidates candidates
+                    :action org-olp--select-actions
+                    :keymap helm-org-olp-select-map)))
+    (helm :sources sources)))
+
+(cl-defun org-olp--pick-next-action ((file-name olp pick))
   (helm-org-olp-pick file-name `(,@olp ,pick)))
 
-(cl-defun org-olp--helm-previous ((file-name olp pick))
+(cl-defun org-olp--pick-previous-action ((file-name olp pick))
   (if olp
       (helm-org-olp-pick file-name (butlast olp))
     (if file-name
-        (helm-org-olp-find '(1))
+        (helm-org-olp-find (org-olp--select-file (f-split (f-dirname file-name))))
       (helm-org-olp-pick file-name))))
 
-(cl-defun org-olp--helm-visit ((file-name olp pick))
+(cl-defun org-olp--pick-visit-action ((file-name olp pick))
   `(,@olp ,pick))
 
-(defun org-olp--helm-abort (_) nil)
+(defun org-olp--pick-abort-action (_) nil)
 
 (defvar org-olp-helm-actions
-  '(("Select" . org-olp--helm-next)
-    ("Previous" . org-olp--helm-previous)
-    ("Visit" . org-olp--helm-visit)
-    ("Abort" . org-olp--helm-abort)))
+  '(("Select" . org-olp--pick-next-action)
+    ("Previous" . org-olp--pick-previous-action)
+    ("Visit" . org-olp--pick-visit-action)
+    ("Abort" . org-olp--pick-abort-action)))
 
 (defun org-olp--next-pick ()
   (interactive)
-  (helm-exit-and-execute-action 'org-olp--helm-next))
+  (helm-exit-and-execute-action 'org-olp--pick-next-action))
 
 (defun org-olp--previous-pick ()
   (interactive)
-  (helm-exit-and-execute-action 'org-olp--helm-previous))
+  (helm-exit-and-execute-action 'org-olp--pick-previous-action))
 
 (defun org-olp--pick-visit ()
   (interactive)
-  (helm-exit-and-execute-action 'org-olp--helm-visit))
+  (helm-exit-and-execute-action 'org-olp--pick-visit-action))
 
 (defun org-olp--pick-abort ()
   (interactive)
-  (helm-exit-and-execute-action 'org-olp--helm-abort))
+  (helm-exit-and-execute-action 'org-olp--pick-abort-action))
 
 (setq helm-org-olp-find-map
   (let ((map (make-sparse-keymap)))
@@ -204,7 +256,7 @@ then inserts the element *under* the heading pointed to by the second olp
 or top-level, then visit the selected heading."
   (interactive "P")
   (let* ((file-name (if (and file-name (listp file-name))
-                        (org-olp--select-agenda-file)
+                        (org-olp--select-file)
                       file-name)))
     (-when-let (olp (helm-org-olp-pick file-name olp))
       (org-olp-visit file-name olp)
