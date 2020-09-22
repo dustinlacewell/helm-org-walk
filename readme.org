@@ -3,6 +3,8 @@
 This module offers a new way to navigate and refile with Org-mode. It also has
 some utility functions for working with "olp" outline paths.
 
+[[./demo.gif]]
+
 * Interactive Commands
 ** helm-org-olp-find (file-name &optional olp)
 
