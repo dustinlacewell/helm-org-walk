@@ -1,23 +1,35 @@
 * org-olp
 
-This module provides some helpful elisp functions for working with org "olp" paths.
+This module offers a new way to navigate and refile with Org-mode. It also has
+some utility functions for working with "olp" outline paths.
 
-** =org-olp-visit= (file-name olp)
+* Interactive Commands
+** helm-org-olp-find (file-name &optional olp)
+
+Interactively select headings from FILE-NAME, starting at OLP and visit the
+final selection.
+
+Called interactively or with nil FILE-NAME, navigate the current file starting
+from OLP or current entry if nil.
+
+C-u prefix will start with a file selection from org-agenda-files. Selecting a
+non-existent file will create and select it from org-directory.
+
+** helm-org-olp-refile-this
+
+Interactively refile the current entry somewhere in the same buffer.
+
+With C-u prefix, refile to another file in org-agenda-files. Selecting a
+non-existent file will create and select it from org-directory.
+
+* Function API
+** helm-org-olp-pick (file-name &optional olp)
+
+Interactively select headings from FILE-NAME (or current buffer if nil),
+starting at OLP (or top-level if nil), to form a new olp path.
+
+** org-olp-visit (file-name olp)
 Visit the heading in FILE-NAME denoted by OLP
-** =org-olp-select= (file-name olp)
-Select and return olp of child of heading pointed to by OLP in FILE-NAME
-** =org-olp-select-then-visit= (file-name olp)
-Run org-olp-select then visit the resulting olp in FILE-NAME
-** =org-olp-recursive-select= (file-name &rest olp)
-Select headings from FILE-NAME, from OLP or top-level, until a heading with no
-children is reached. The resulting olp is returned.
-** =org-olp-jump= (file-name &rest olp)
-Run org-olp-recursive-select on FILE-NAME, starting from OLP or top-level, then visit
-the selected heading.
-** =org-olp-find= (file-name &rest olp)
-Run org-olp-recursive-select on FILE-NAME, starting from OLP or
-top-level, then visit the selected heading.
-** =org-olp-refile= (file-name olp-src olp-dst)
-This function takes a filename and two olp paths it uses the
-org-element api to remove the heading specified by the first olp and
-then inserts the element *under* the heading pointed to by the second olp
+
+** org-olp-refile (src-file-name olp-src dst-file-name olp-dst)
+Refile the entry in SRC-FILE-NAME at OLP-SRC to DST-FILE-NAME under OLP-DST.

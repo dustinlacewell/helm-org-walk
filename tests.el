@@ -3,14 +3,27 @@
 ;;
 ;; emacs -batch -l ert -l tests.el -f ert-run-tests-batch-and-exit
 ;;
+(let ((bootstrap-file (concat user-emacs-directory "straight/repos/straight.el/bootstrap.el"))
+      (bootstrap-version 3))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage)
+  (setq straight-vc-git-default-clone-depth 1))
+
+(setq straight-use-package-by-default t)
+(straight-use-package 'use-package)
+
+(use-package ert)
+(use-package org)
+(use-package helm)
 
 ;; Add the current path to load paths so we can load org-olp from here
 (add-to-list 'load-path ".")
-;;;; Use a custom version of org-mode
-(add-to-list 'load-path "~/sources/olp/org-mode/lisp")
-
-(require 'ert)
-(require 'org)
 (require 'org-olp)
 
 ;; This is actually in place to make the tests pass
@@ -73,19 +86,19 @@ content222")
          (kill-this-buffer)
          result))))
 
-
 (defun test-refile-helper (olp-src olp-dst)
   (with-org-buffer
    ;; run our refiling routine
    (org-olp-refile nil olp-src nil olp-dst)
    ;; modified-contents
-   (org-olp--olp-subheadings olp-dst)))
+   (org-olp--olp-subheadings nil olp-dst)))
 
-(ert-deftest matches-in-buffer--finds-match ()
+(ert-deftest matches--finds-match ()
   (let ((pattern (rx bol "* " (group (one-or-more (or alnum " "))) eol)))
     (with-org-buffer
-     (should (equal '("* a1" "* a2") (org-olp--matches-in-buffer pattern)))
-     (should (equal '("a1" "a2") (org-olp--matches-in-buffer pattern :which 1))))))
+     (should (equal '("* a1" "* a2") (org-olp--matches nil pattern)))
+     (should (equal '("a1" "a2") (org-olp--matches nil pattern :which 1)))
+     )))
 
 (ert-deftest subheadings-at-point--returns-subheading ()
   (with-org-buffer
@@ -94,13 +107,13 @@ content222")
 
 (ert-deftest olp-subheadings ()
   (with-org-buffer
-   (should (equal '("a211" "a212") (org-olp--olp-subheadings '("a2" "a21"))))
-   (should (equal '("a2" "a21" "a211" "a212" "a22" "a221" "a222") (org-olp--olp-subheadings '("a2") t)))))
+   (should (equal '("a211" "a212") (org-olp--olp-subheadings nil '("a2" "a21"))))
+   (should (equal '("a2" "a21" "a211" "a212" "a22" "a221" "a222") (org-olp--olp-subheadings nil '("a2") t)))))
 
 (ert-deftest file-olp-subheadings ()
   (with-org-file
-   (should (equal '("a11" "a12") (org-olp--file-olp-subheadings file-name '("a1"))))
-   (should (equal '("a1" "a11" "a111" "a112" "a12" "a121" "a122") (org-olp--file-olp-subheadings file-name '("a1") t)))))
+   (should (equal '("a11" "a12") (org-olp--olp-subheadings file-name '("a1"))))
+   (should (equal '("a1" "a11" "a111" "a112" "a12" "a121" "a122") (org-olp--olp-subheadings file-name '("a1") t)))))
 
 (ert-deftest goto-end ()
   (with-org-buffer
@@ -108,7 +121,6 @@ content222")
   (with-org-buffer
    (search-forward "a11")
    (should (equal 90 (org-olp--goto-end)))))
-
 
 ;; (a12 moves under a2 ; same level)
 (ert-deftest refiling-test-same-level ()
