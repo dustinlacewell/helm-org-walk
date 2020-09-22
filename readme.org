@@ -8,30 +8,30 @@ some utility functions for working with "olp" outline paths.
 * Interactive Commands
 ** helm-org-olp-find (file-name &optional olp)
 
-Interactively select headings from FILE-NAME, starting at OLP and visit the
+Interactively select headings from *FILE-NAME*, starting at *OLP* and visit the
 final selection.
 
-Called interactively or with nil FILE-NAME, navigate the current file starting
-from OLP or current entry if nil.
+Called interactively, or with =nil= *FILE-NAME*, navigate the current file starting
+from *OLP* or current entry if =nil=.
 
-C-u prefix will start with a file selection from org-agenda-files. Selecting a
-non-existent file will create and select it from org-directory.
+=C-u= prefix will start with a file selection from =org-agenda-files=. Selecting a
+non-existent file will create and select it from =org-directory=.
 
 ** helm-org-olp-refile-this
 
 Interactively refile the current entry somewhere in the same buffer.
 
-With C-u prefix, refile to another file in org-agenda-files. Selecting a
-non-existent file will create and select it from org-directory.
+With =C-u= prefix, refile to another file in =org-agenda-files=. Selecting a
+non-existent file will create and select it from =org-directory=.
 
 * Function API
 ** helm-org-olp-pick (file-name &optional olp)
 
-Interactively select headings from FILE-NAME (or current buffer if nil),
-starting at OLP (or top-level if nil), to form a new olp path.
+Interactively select headings from *FILE-NAME* (or current buffer if =nil=),
+starting at *OLP* (or top-level if =nil=), to form a new olp path.
 
 ** org-olp-visit (file-name olp)
-Visit the heading in FILE-NAME denoted by OLP
+Visit the heading in *FILE-NAME* denoted by *OLP*
 
 ** org-olp-refile (src-file-name olp-src dst-file-name olp-dst)
-Refile the entry in SRC-FILE-NAME at OLP-SRC to DST-FILE-NAME under OLP-DST.
+Refile the entry in *SRC-FILE-NAME* at *OLP-SRC* to *DST-FILE-NAME* under *OLP-DST*.
