@@ -278,7 +278,7 @@ file if it does not exist."
         (when file-name
           (helm-org-walk--pick-go file-name olp))))))
 
-(defun helm-org-walk-refile (arg)
+(defun helm-org-walk-refile-this (arg)
   (interactive "P")
   (let* ((src-file-name nil)
          (src-olp (org-get-outline-path t t))
