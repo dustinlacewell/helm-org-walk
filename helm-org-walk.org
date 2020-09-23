@@ -369,9 +369,9 @@ Boilerplate related to recursively running helm against headings in a file.
           (call-interactively 'org-cycle)))))
 #+end_src
 
-*** helm-org-walk-refile-this
+*** helm-org-walk-refile
 #+begin_src emacs-lisp
-  (defun helm-org-walk-refile-this (arg)
+  (defun helm-org-walk-refile (arg)
     (interactive "P")
     (let* ((src-file-name nil)
            (src-olp (org-get-outline-path t t))

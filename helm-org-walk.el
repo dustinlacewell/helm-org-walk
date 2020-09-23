@@ -271,7 +271,7 @@ file if it does not exist."
         (beginning-of-line)
         (call-interactively 'org-cycle)))))
 
-(defun helm-org-walk-refile-this (arg)
+(defun helm-org-walk-refile (arg)
   (interactive "P")
   (let* ((src-file-name nil)
          (src-olp (org-get-outline-path t t))
