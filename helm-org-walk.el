@@ -44,15 +44,14 @@
   "Open a temporary buffer with the contents of FILE-NAME and
 execute BODY forms."
   (declare (indent defun))
-  `(if ,file-name
-       (let ((full-path (expand-file-name ,file-name)))
-         `(when (not (f-exists? full-path))
-            (write-region "" nil ,full-path))
-         (with-temp-buffer
-           (insert-file-contents full-path)
-           (org-mode)
-           ,@body))
-     (progn ,@body)))
+  `(save-excursion
+     (if ,file-name
+         (let ((full-path (expand-file-name ,file-name)))
+           (with-temp-buffer
+             (insert-file-contents full-path)
+             (org-mode)
+             ,@body))
+       (progn ,@body))))
 
 (cl-defun helm-org-walk--matches (file-name regexp &key (which 0))
   "Return a list of matches of REGEXP in FILE-NAME or the current buffer if nil."
@@ -112,7 +111,8 @@ execute BODY forms."
   (let ((path (butlast path)))
     (helm-org-walk--select-file path)))
 
-(defun helm-org-walk--select-abort-action (_) nil)
+(defun helm-org-walk--select-abort-action (_)
+  (setq helm-input nil))
 
 (setq helm-org-walk--select-actions
       '(("Select" . helm-org-walk--select-next-action)
@@ -157,7 +157,7 @@ execute BODY forms."
                     :candidates candidates
                     :action helm-org-walk--select-actions
                     :keymap helm-org-walk-select-map)))
-    (or (helm :sources sources) (f-join root-path helm-input))))
+    (or (helm :sources sources) (when helm-input (f-join root-path helm-input)))))
 
 (cl-defun helm-org-walk--pick-next-action ((file-name olp pick))
   (helm-org-walk-pick file-name `(,@olp ,pick)))
@@ -166,7 +166,8 @@ execute BODY forms."
   (if olp
       (helm-org-walk-pick file-name (butlast olp))
     (if file-name
-        (helm-org-walk (helm-org-walk--select-file (f-split (f-dirname file-name))))
+        (-when-let ((selected-file (helm-org-walk--select-file (f-split (f-dirname file-name)))))
+          (helm-org-walk selected-file))
       (helm-org-walk-pick file-name))))
 
 (cl-defun helm-org-walk--pick-visit-action ((file-name olp pick))
@@ -196,6 +197,12 @@ execute BODY forms."
   (interactive)
   (helm-exit-and-execute-action 'helm-org-walk--pick-abort-action))
 
+(defun helm-org-walk--pick-go (file-name olp)
+  (-when-let (olp (helm-org-walk-pick file-name olp))
+    (helm-org-walk-visit file-name olp)
+    (beginning-of-line)
+    (org-reveal)))
+
 (setq helm-org-walk-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map helm-map)
@@ -207,16 +214,16 @@ execute BODY forms."
 (defun helm-org-walk-pick (file-name &optional olp)
   "Use helm to pick headings from FILE-NAME, starting at OLP, to form a new olp path."
   (helm-org-walk--with-buffer file-name
-                        (-let* ((children (if olp (helm-org-walk--subheadings file-name olp)
-                                            (helm-org-walk--top-level-headings file-name))))
-                          (if (not children) olp
-                            (-let* ((candidates (--map (cons it `(,file-name ,olp ,it)) children))
-                                    (actions helm-org-walk-helm-actions)
-                                    (sources (helm-build-sync-source (s-join "/" olp)
-                                               :keymap helm-org-walk-map
-                                               :candidates candidates
-                                               :action actions)))
-                              (helm :sources sources))))))
+    (-let* ((children (if olp (helm-org-walk--subheadings file-name olp)
+                        (helm-org-walk--top-level-headings file-name))))
+      (if (not children) olp
+        (-let* ((candidates (--map (cons it `(,file-name ,olp ,it)) children))
+                (actions helm-org-walk-helm-actions)
+                (sources (helm-build-sync-source (s-join "/" olp)
+                           :keymap helm-org-walk-map
+                           :candidates candidates
+                           :action actions)))
+          (helm :sources sources))))))
 
 (cl-defun helm-org-walk-visit (file-name olp)
   "Visit the heading in FILE-NAME denoted by OLP"
@@ -259,17 +266,15 @@ then inserts the element *under* the heading pointed to by the second olp
 or top-level, then visit the selected heading. Create selected
 file if it does not exist."
   (interactive "P")
-  (let* ((file-name (if (and file-name (listp file-name))
-                        (or (helm-org-walk--select-file) helm-input)
-                      file-name)))
-    (if (not (f-exists? file-name))
-        ;;  create file if it doesn't exist
-        (find-file file-name)
-      ;; otherwise open it and travel to the olp
-      (-when-let (olp (helm-org-walk-pick file-name olp))
-        (helm-org-walk-visit file-name olp)
-        (beginning-of-line)
-        (call-interactively 'org-cycle)))))
+  (let* ((is-org-buffer (and (not file-name) (eq 'org-mode major-mode)))
+         (is-prefixed (and file-name (listp file-name))))
+    (if is-org-buffer
+        (helm-org-walk--pick-go file-name olp)
+      (if is-prefixed
+          (-when-let (file-name (helm-org-walk--select-file) helm-input)
+            (helm-org-walk--pick-go file-name olp))
+        (when file-name
+          (helm-org-walk--pick-go file-name olp))))))
 
 (defun helm-org-walk-refile (arg)
   (interactive "P")
