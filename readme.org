@@ -2,37 +2,34 @@
 
 Walk up and down your Org-mode files quickly.
 
-Using Helm, navigate your Org-mode files by "walking" up and down the hierarchy:
-
 [[./demo.gif]]
 
-* Interactive Commands
-** helm-helm-org-walk-find (file-name &optional olp)
+=helm-org-walk= helps you navigate or refile your org hierarchies with ease.
 
-Interactively select headings from *FILE-NAME*, starting at *OLP* and visit the
-final selection.
+If you already know what you're looking for [[https://github.com/alphapapa/org-rifle][org-rifle]] or [[https://github.com/alphapapa/org-ql][org-ql]] can help you
+find it. However, if you don't quite know or remember what you're looking for,
+=helm-org-walk= can help.
 
-Called interactively, or with =nil= *FILE-NAME*, navigate the current file starting
-from *OLP* or current entry if =nil=.
+* Installation
+We recommend installing with [[https://github.com/raxod502/straight.el][straight.el]] and [[https://github.com/jwiegley/use-package][use-package]]:
 
-=C-u= prefix will start with a file selection from =org-agenda-files=. Selecting a
-non-existent file will create and select it from =org-directory=.
+#+begin_src emacs-lisp
+  (use-package helm-org-walk
+    :straight (helm-org-walk :type git
+                             :host github
+                             :repo "dustinlacewell/helm-org-walk"))
+#+end_src
 
-** helm-helm-org-walk-refile-this
+* How to use
+- Walk current buffer: =M-x helm-org-walk=
+- Walk =org-directory=: =C-u M-x helm-org-walk=
+- Refile to current buffer: =M-x helm-org-walk-refile=
+- Refile to =org-directory=: =C-u M-x helm-org-walk-refile=
 
-Interactively refile the current entry somewhere in the same buffer.
-
-With =C-u= prefix, refile to another file in =org-agenda-files=. Selecting a
-non-existent file will create and select it from =org-directory=.
-
-* Function API
-** helm-helm-org-walk-pick (file-name &optional olp)
-
-Interactively select headings from *FILE-NAME* (or current buffer if =nil=),
-starting at *OLP* (or top-level if =nil=), to form a new olp path.
-
-** helm-org-walk-visit (file-name olp)
-Visit the heading in *FILE-NAME* denoted by *OLP*
-
-** helm-org-walk-refile (src-file-name olp-src dst-file-name olp-dst)
-Refile the entry in *SRC-FILE-NAME* at *OLP-SRC* to *DST-FILE-NAME* under *OLP-DST*.
+Helm bindings:
+|---------------+--------------------------|
+| <return>      | Walk forwards/downwards  |
+| C-<backspace> | Walk backwards/upwards   |
+| C-<return>    | Choose current selection |
+| C-g           | Abort                    |
+|---------------+--------------------------|
