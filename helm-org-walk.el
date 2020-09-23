@@ -166,7 +166,8 @@ execute BODY forms."
   (if olp
       (helm-org-walk-pick file-name (butlast olp))
     (if file-name
-        (-when-let ((selected-file (helm-org-walk--select-file (f-split (f-dirname file-name)))))
+        (-when-let (selected-file (helm-org-walk--select-file
+                                   (f-split (f-dirname file-name))))
           (helm-org-walk selected-file))
       (helm-org-walk-pick file-name))))
 
@@ -201,7 +202,8 @@ execute BODY forms."
   (-when-let (olp (helm-org-walk-pick file-name olp))
     (helm-org-walk-visit file-name olp)
     (beginning-of-line)
-    (org-reveal)))
+    (org-reveal)
+    (org-show-entry)))
 
 (setq helm-org-walk-map
   (let ((map (make-sparse-keymap)))
