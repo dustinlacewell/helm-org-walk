@@ -1,12 +1,13 @@
-* org-olp
+* helm-org-walk
 
-This module offers a new way to navigate and refile with Org-mode. It also has
-some utility functions for working with "olp" outline paths.
+Walk up and down your Org-mode files quickly.
+
+Using Helm, navigate your Org-mode files by "walking" up and down the hierarchy:
 
 [[./demo.gif]]
 
 * Interactive Commands
-** helm-org-olp-find (file-name &optional olp)
+** helm-helm-org-walk-find (file-name &optional olp)
 
 Interactively select headings from *FILE-NAME*, starting at *OLP* and visit the
 final selection.
@@ -17,7 +18,7 @@ from *OLP* or current entry if =nil=.
 =C-u= prefix will start with a file selection from =org-agenda-files=. Selecting a
 non-existent file will create and select it from =org-directory=.
 
-** helm-org-olp-refile-this
+** helm-helm-org-walk-refile-this
 
 Interactively refile the current entry somewhere in the same buffer.
 
@@ -25,13 +26,13 @@ With =C-u= prefix, refile to another file in =org-agenda-files=. Selecting a
 non-existent file will create and select it from =org-directory=.
 
 * Function API
-** helm-org-olp-pick (file-name &optional olp)
+** helm-helm-org-walk-pick (file-name &optional olp)
 
 Interactively select headings from *FILE-NAME* (or current buffer if =nil=),
 starting at *OLP* (or top-level if =nil=), to form a new olp path.
 
-** org-olp-visit (file-name olp)
+** helm-org-walk-visit (file-name olp)
 Visit the heading in *FILE-NAME* denoted by *OLP*
 
-** org-olp-refile (src-file-name olp-src dst-file-name olp-dst)
+** helm-org-walk-refile (src-file-name olp-src dst-file-name olp-dst)
 Refile the entry in *SRC-FILE-NAME* at *OLP-SRC* to *DST-FILE-NAME* under *OLP-DST*.
