@@ -23,8 +23,8 @@ We recommend installing with [[https://github.com/raxod502/straight.el][straight
 * How to use
 - Walk current buffer: =M-x helm-org-walk=
 - Walk =org-directory=: =C-u M-x helm-org-walk=
-- Refile to current buffer: =M-x helm-org-walk-refile=
-- Refile to =org-directory=: =C-u M-x helm-org-walk-refile=
+- Refile to current buffer: =M-x helm-org-walk-refile-this=
+- Refile to =org-directory=: =C-u M-x helm-org-walk-refile-this=
 
 Helm bindings:
 | <return>      | Walk forwards/downwards  |
