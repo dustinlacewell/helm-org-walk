@@ -22,9 +22,9 @@
 (use-package org)
 (use-package helm)
 
-;; Add the current path to load paths so we can load org-olp from here
+;; Add the current path to load paths so we can load helm-org-walk from here
 (add-to-list 'load-path ".")
-(require 'org-olp)
+(require 'helm-org-walk)
 
 ;; This is actually in place to make the tests pass
 ;; even though a bug surfaced in org-mode itself.
@@ -89,38 +89,38 @@ content222")
 (defun test-refile-helper (olp-src olp-dst)
   (with-org-buffer
    ;; run our refiling routine
-   (org-olp-refile nil olp-src nil olp-dst)
+   (helm-org-walk-refile nil olp-src nil olp-dst)
    ;; modified-contents
-   (org-olp--olp-subheadings nil olp-dst)))
+   (helm-org-walk--subheadings nil olp-dst)))
 
 (ert-deftest matches--finds-match ()
   (let ((pattern (rx bol "* " (group (one-or-more (or alnum " "))) eol)))
     (with-org-buffer
-     (should (equal '("* a1" "* a2") (org-olp--matches nil pattern)))
-     (should (equal '("a1" "a2") (org-olp--matches nil pattern :which 1)))
+     (should (equal '("* a1" "* a2") (helm-org-walk--matches nil pattern)))
+     (should (equal '("a1" "a2") (helm-org-walk--matches nil pattern :which 1)))
      )))
 
 (ert-deftest subheadings-at-point--returns-subheading ()
   (with-org-buffer
-   (should (equal '("a11" "a12") (org-olp--subheadings-at-point)))
-   (should (equal '("a1" "a11" "a111" "a112" "a12" "a121" "a122") (org-olp--subheadings-at-point t)))))
+   (should (equal '("a11" "a12") (helm-org-walk--subheadings-at-point)))
+   (should (equal '("a1" "a11" "a111" "a112" "a12" "a121" "a122") (helm-org-walk--subheadings-at-point t)))))
 
 (ert-deftest olp-subheadings ()
   (with-org-buffer
-   (should (equal '("a211" "a212") (org-olp--olp-subheadings nil '("a2" "a21"))))
-   (should (equal '("a2" "a21" "a211" "a212" "a22" "a221" "a222") (org-olp--olp-subheadings nil '("a2") t)))))
+   (should (equal '("a211" "a212") (helm-org-walk--subheadings nil '("a2" "a21"))))
+   (should (equal '("a2" "a21" "a211" "a212" "a22" "a221" "a222") (helm-org-walk--subheadings nil '("a2") t)))))
 
 (ert-deftest file-olp-subheadings ()
   (with-org-file
-   (should (equal '("a11" "a12") (org-olp--olp-subheadings file-name '("a1"))))
-   (should (equal '("a1" "a11" "a111" "a112" "a12" "a121" "a122") (org-olp--olp-subheadings file-name '("a1") t)))))
+   (should (equal '("a11" "a12") (helm-org-walk--subheadings file-name '("a1"))))
+   (should (equal '("a1" "a11" "a111" "a112" "a12" "a121" "a122") (helm-org-walk--subheadings file-name '("a1") t)))))
 
 (ert-deftest goto-end ()
   (with-org-buffer
-   (should (equal 147 (org-olp--goto-end))))
+   (should (equal 147 (helm-org-walk--goto-end))))
   (with-org-buffer
    (search-forward "a11")
-   (should (equal 90 (org-olp--goto-end)))))
+   (should (equal 90 (helm-org-walk--goto-end)))))
 
 ;; (a12 moves under a2 ; same level)
 (ert-deftest refiling-test-same-level ()

@@ -1,4 +1,4 @@
-;;; org-olp.el --- Helpful olp functions
+;;; helm-org-walk.el --- Helpful olp functions
 
 ;; Author: Dustin Lacewell <dlacewell@gmail.com>
 ;; Version: 0.1.0
@@ -33,30 +33,33 @@
 
 ;; Helpful olp commands
 ;;
-;; See documentation at https://github.com/dustinlacewell/org-olp
+;; See documentation at https://github.com/dustinlacewell/helm-org-walk
 
 ;;; Code:
 (require 'cl-lib)
 (require 'helm)
 (require 'org)
 
-(defmacro org-olp--with-buffer (file-name &rest body)
+(defmacro helm-org-walk--with-buffer (file-name &rest body)
   "Open a temporary buffer with the contents of FILE-NAME and
 execute BODY forms."
   (declare (indent defun))
   `(if ,file-name
-       (with-temp-buffer
-         (insert-file-contents (expand-file-name ,file-name))
-         (org-mode)
-         ,@body)
+       (let ((full-path (expand-file-name ,file-name)))
+         `(when (not (f-exists? full-path))
+            (write-region "" nil ,full-path))
+         (with-temp-buffer
+           (insert-file-contents full-path)
+           (org-mode)
+           ,@body))
      (progn ,@body)))
 
-(cl-defun org-olp--matches (file-name regexp &key (which 0))
+(cl-defun helm-org-walk--matches (file-name regexp &key (which 0))
   "Return a list of matches of REGEXP in FILE-NAME or the current buffer if nil."
   (let ((matches))
     (save-match-data
       (save-excursion
-        (org-olp--with-buffer file-name
+        (helm-org-walk--with-buffer file-name
                               (save-restriction
                                 (widen)
                                 (goto-char 1)
@@ -64,11 +67,11 @@ execute BODY forms."
                                   (push (match-string which) matches)))))
       (reverse matches))))
 
-(defun org-olp--top-level-headings (file-name)
+(defun helm-org-walk--top-level-headings (file-name)
   "Return top-level headings in FILE-NAME."
-  (org-olp--matches file-name "^\\*[ ]+\\(.+\\)$" :which 1))
+  (helm-org-walk--matches file-name "^\\*[ ]+\\(.+\\)$" :which 1))
 
-(defun org-olp--subheadings-at-point (&optional recursive)
+(defun helm-org-walk--subheadings-at-point (&optional recursive)
   "Return a list of subheadings. If RECURSIVE, return a list of
    all headings in subheading subtrees."
   (org-save-outline-visibility t
@@ -85,57 +88,57 @@ execute BODY forms."
                                    (null (org-forward-heading-same-level nil t))
                                    (eq pos (point)))))))))))
 
-(defun org-olp--olp-subheadings (file-name olp &optional recursive)
+(defun helm-org-walk--subheadings (file-name olp &optional recursive)
   "Return subheadings of OLP in FILE-NAME, recursing if RECURSIVE."
-  (org-olp--with-buffer file-name
+  (helm-org-walk--with-buffer file-name
                         (goto-char (org-find-olp olp 't))
-                        (org-olp--subheadings-at-point recursive)))
+                        (helm-org-walk--subheadings-at-point recursive)))
 
-(defun org-olp--goto-end ()
+(defun helm-org-walk--goto-end ()
   "Either go to the end of line or to the end of the content for that element"
   (let ((cend (org-element-property :contents-end (org-element-at-point))))
     (goto-char (if cend cend (point-at-eol)))
     ))
 
-(cl-defun org-olp--select-next-action ((path pick))
+(cl-defun helm-org-walk--select-next-action ((path pick))
   (let* ((full-path (f-join org-directory (eval `(apply 'f-join (list ,@path ,pick))))))
     (if (f-exists? full-path)
         (if (f-directory? full-path)
-            (org-olp--select-file (append path (list pick)))
+            (helm-org-walk--select-file (append path (list pick)))
           full-path)
       full-path)))
 
-(cl-defun org-olp--select-previous-action ((path pick))
+(cl-defun helm-org-walk--select-previous-action ((path pick))
   (let ((path (butlast path)))
-    (org-olp--select-file path)))
+    (helm-org-walk--select-file path)))
 
-(defun org-olp--select-abort-action (_) nil)
+(defun helm-org-walk--select-abort-action (_) nil)
 
-(setq org-olp--select-actions
-      '(("Select" . org-olp--select-next-action)
-        ("Previous" . org-olp--select-previous-action)
-        ("Abort" . org-olp--select-abort-action)))
+(setq helm-org-walk--select-actions
+      '(("Select" . helm-org-walk--select-next-action)
+        ("Previous" . helm-org-walk--select-previous-action)
+        ("Abort" . helm-org-walk--select-abort-action)))
 
-(defun org-olp--select-next ()
+(defun helm-org-walk--select-next ()
   (interactive
-   (helm-exit-and-execute-action 'org-olp--select-next-action)))
+   (helm-exit-and-execute-action 'helm-org-walk--select-next-action)))
 
-(defun org-olp--select-previous ()
+(defun helm-org-walk--select-previous ()
   (interactive
-   (helm-exit-and-execute-action 'org-olp--select-previous-action)))
+   (helm-exit-and-execute-action 'helm-org-walk--select-previous-action)))
 
-(defun org-olp--select-abort ()
+(defun helm-org-walk--select-abort ()
   (interactive)
-  (helm-exit-and-execute-action 'org-olp--select-abort-action))
+  (helm-exit-and-execute-action 'helm-org-walk--select-abort-action))
 
-(setq helm-org-olp-select-map
+(setq helm-org-walk-select-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map helm-map)
-    (define-key map (kbd "C-<backspace>") 'org-olp--select-previous)
-    (define-key map (kbd "C-g") 'org-olp--select-abort)
+    (define-key map (kbd "C-<backspace>") 'helm-org-walk--select-previous)
+    (define-key map (kbd "C-g") 'helm-org-walk--select-abort)
     map))
 
-(defun org-olp--select-file (&optional start-path)
+(defun helm-org-walk--select-file (&optional start-path)
   (interactive)
   (let* ((root-path (apply 'f-join org-directory start-path))
          (paths (f-glob "*" root-path))
@@ -152,70 +155,70 @@ execute BODY forms."
          (candidates (append directory-candidates file-candidates))
          (sources (helm-build-sync-source root-path
                     :candidates candidates
-                    :action org-olp--select-actions
-                    :keymap helm-org-olp-select-map)))
-    (helm :sources sources)))
+                    :action helm-org-walk--select-actions
+                    :keymap helm-org-walk-select-map)))
+    (or (helm :sources sources) (f-join root-path helm-input))))
 
-(cl-defun org-olp--pick-next-action ((file-name olp pick))
-  (helm-org-olp-pick file-name `(,@olp ,pick)))
+(cl-defun helm-org-walk--pick-next-action ((file-name olp pick))
+  (helm-org-walk-pick file-name `(,@olp ,pick)))
 
-(cl-defun org-olp--pick-previous-action ((file-name olp pick))
+(cl-defun helm-org-walk--pick-previous-action ((file-name olp pick))
   (if olp
-      (helm-org-olp-pick file-name (butlast olp))
+      (helm-org-walk-pick file-name (butlast olp))
     (if file-name
-        (helm-org-olp-find (org-olp--select-file (f-split (f-dirname file-name))))
-      (helm-org-olp-pick file-name))))
+        (helm-org-walk (helm-org-walk--select-file (f-split (f-dirname file-name))))
+      (helm-org-walk-pick file-name))))
 
-(cl-defun org-olp--pick-visit-action ((file-name olp pick))
+(cl-defun helm-org-walk--pick-visit-action ((file-name olp pick))
   `(,@olp ,pick))
 
-(defun org-olp--pick-abort-action (_) nil)
+(defun helm-org-walk--pick-abort-action (_) nil)
 
-(defvar org-olp-helm-actions
-  '(("Select" . org-olp--pick-next-action)
-    ("Previous" . org-olp--pick-previous-action)
-    ("Visit" . org-olp--pick-visit-action)
-    ("Abort" . org-olp--pick-abort-action)))
+(defvar helm-org-walk-helm-actions
+  '(("Select" . helm-org-walk--pick-next-action)
+    ("Previous" . helm-org-walk--pick-previous-action)
+    ("Visit" . helm-org-walk--pick-visit-action)
+    ("Abort" . helm-org-walk--pick-abort-action)))
 
-(defun org-olp--next-pick ()
+(defun helm-org-walk--next-pick ()
   (interactive)
-  (helm-exit-and-execute-action 'org-olp--pick-next-action))
+  (helm-exit-and-execute-action 'helm-org-walk--pick-next-action))
 
-(defun org-olp--previous-pick ()
+(defun helm-org-walk--previous-pick ()
   (interactive)
-  (helm-exit-and-execute-action 'org-olp--pick-previous-action))
+  (helm-exit-and-execute-action 'helm-org-walk--pick-previous-action))
 
-(defun org-olp--pick-visit ()
+(defun helm-org-walk--pick-visit ()
   (interactive)
-  (helm-exit-and-execute-action 'org-olp--pick-visit-action))
+  (helm-exit-and-execute-action 'helm-org-walk--pick-visit-action))
 
-(defun org-olp--pick-abort ()
+(defun helm-org-walk--pick-abort ()
   (interactive)
-  (helm-exit-and-execute-action 'org-olp--pick-abort-action))
+  (helm-exit-and-execute-action 'helm-org-walk--pick-abort-action))
 
-(setq helm-org-olp-find-map
+(setq helm-org-walk-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map helm-map)
-    (define-key map (kbd "C-<backspace>") 'org-olp--previous-pick)
-    (define-key map (kbd "C-<return>") 'org-olp--pick-visit)
-    (define-key map (kbd "C-g") 'org-olp--pick-abort)
+    (define-key map (kbd "C-<backspace>") 'helm-org-walk--previous-pick)
+    (define-key map (kbd "C-<return>") 'helm-org-walk--pick-visit)
+    (define-key map (kbd "C-g") 'helm-org-walk--pick-abort)
     map))
 
-(defun helm-org-olp-pick (file-name &optional olp)
+(defun helm-org-walk-pick (file-name &optional olp)
   "Use helm to pick headings from FILE-NAME, starting at OLP, to form a new olp path."
-  (org-olp--with-buffer file-name
-                        (-let* ((children (if olp (org-olp--olp-subheadings file-name olp)
-                                            (org-olp--top-level-headings file-name))))
+  (helm-org-walk--with-buffer file-name
+                        (-let* ((children (if olp (helm-org-walk--subheadings file-name olp)
+                                            (helm-org-walk--top-level-headings file-name))))
                           (if (not children) olp
                             (-let* ((candidates (--map (cons it `(,file-name ,olp ,it)) children))
-                                    (actions org-olp-helm-actions)
+                                    (actions helm-org-walk-helm-actions)
                                     (sources (helm-build-sync-source (s-join "/" olp)
-                                               :keymap helm-org-olp-find-map
+                                               :keymap helm-org-walk-map
                                                :candidates candidates
                                                :action actions)))
                               (helm :sources sources))))))
 
-(cl-defun org-olp-visit (file-name olp)
+(cl-defun helm-org-walk-visit (file-name olp)
   "Visit the heading in FILE-NAME denoted by OLP"
   (let ((marker (if file-name
                     (org-find-olp `(,file-name ,@olp))
@@ -224,53 +227,58 @@ execute BODY forms."
     (goto-char marker)
     (call-interactively 'recenter-top-bottom)))
 
-(defun org-olp-refile (src-file-name olp-src dst-file-name olp-dst)
+(defun helm-org-walk-refile (src-file-name olp-src dst-file-name olp-dst)
   "This function takes a filename and two olp paths it uses the
 org-element api to remove the heading specified by the first olp and
 then inserts the element *under* the heading pointed to by the second olp
 "
 
-  (org-olp-visit src-file-name olp-src)
+  (helm-org-walk-visit src-file-name olp-src)
   (let ((src-level (org-element-property :level (org-element-at-point))))
     (org-cut-subtree)
-    (org-olp-visit dst-file-name olp-dst)
+    (helm-org-walk-visit dst-file-name olp-dst)
     (outline-show-all)
     (let ((dst-level (org-element-property :level (org-element-at-point)))
           (dst-contents-end (org-element-property :contents-end (org-element-at-point))))
       (cond ((= src-level (+ dst-level 1)) (progn
-                                             (org-olp--goto-end)
+                                             (helm-org-walk--goto-end)
                                              (org-paste-subtree (+ dst-level 1))))
             ((> src-level (+ dst-level 1)) (progn
-                                             (org-olp--goto-end)
+                                             (helm-org-walk--goto-end)
                                              (org-paste-subtree (+ dst-level 1))))
             ((< src-level (+ dst-level 1)) (progn
-                                             (org-olp--goto-end)
+                                             (helm-org-walk--goto-end)
                                              (org-paste-subtree (+ dst-level 1))))))
     (org-content 1)
     (setq current-prefix-arg '(8))
     (org-reveal t)
     (call-interactively 'org-cycle)))
 
-(cl-defun helm-org-olp-find (file-name &optional olp)
-  "Run org-olp-recursive-select on FILE-NAME, starting from OLP
-or top-level, then visit the selected heading."
+(cl-defun helm-org-walk (file-name &optional olp)
+  "Run helm-org-walk-recursive-select on FILE-NAME, starting from OLP
+or top-level, then visit the selected heading. Create selected
+file if it does not exist."
   (interactive "P")
   (let* ((file-name (if (and file-name (listp file-name))
-                        (org-olp--select-file)
+                        (or (helm-org-walk--select-file) helm-input)
                       file-name)))
-    (-when-let (olp (helm-org-olp-pick file-name olp))
-      (org-olp-visit file-name olp)
-      (beginning-of-line)
-      (call-interactively 'org-cycle))))
+    (if (not (f-exists? file-name))
+        ;;  create file if it doesn't exist
+        (find-file file-name)
+      ;; otherwise open it and travel to the olp
+      (-when-let (olp (helm-org-walk-pick file-name olp))
+        (helm-org-walk-visit file-name olp)
+        (beginning-of-line)
+        (call-interactively 'org-cycle)))))
 
-(defun helm-org-olp-refile-this (arg)
+(defun helm-org-walk-refile-this (arg)
   (interactive "P")
   (let* ((src-file-name nil)
          (src-olp (org-get-outline-path t t))
          (dst-file-name (if (and arg (listp arg))
-                            (org-olp--select-agenda-file)
+                            (helm-org-walk--select-agenda-file)
                           src-file-name))
-         (dst-olp (helm-org-olp-pick dst-file-name)))
-    (org-olp-refile src-file-name src-olp dst-file-name dst-olp)))
+         (dst-olp (helm-org-walk-pick dst-file-name)))
+    (helm-org-walk-refile src-file-name src-olp dst-file-name dst-olp)))
 
-(provide 'org-olp)
+(provide 'helm-org-walk)
