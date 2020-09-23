@@ -27,9 +27,8 @@ We recommend installing with [[https://github.com/raxod502/straight.el][straight
 - Refile to =org-directory=: =C-u M-x helm-org-walk-refile=
 
 Helm bindings:
-|---------------+--------------------------|
 | <return>      | Walk forwards/downwards  |
 | C-<backspace> | Walk backwards/upwards   |
 | C-<return>    | Choose current selection |
 | C-g           | Abort                    |
-|---------------+--------------------------|
+
