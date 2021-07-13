@@ -276,7 +276,10 @@ file if it does not exist."
           (-when-let (file-name (helm-org-walk--select-file) helm-input)
             (helm-org-walk--pick-go file-name olp))
         (when file-name
-          (helm-org-walk--pick-go file-name olp))))))
+          (if (file-directory-p file-name)
+              (-when-let (file-name (helm-org-walk--select-file) helm-input)
+                (helm-org-walk--pick-go file-name olp))
+            (helm-org-walk--pick-go file-name olp)))))))
 
 (defun helm-org-walk-refile-this (arg)
   (interactive "P")
