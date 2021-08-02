@@ -114,9 +114,14 @@ execute BODY forms."
 (defun helm-org-walk--select-abort-action (_)
   (setq helm-input nil))
 
+(cl-defun helm-org-walk--select-open-action ((path pick))
+  (find-file (concat episteme/org "/" (car path) "/" pick))
+  nil)
+
 (setq helm-org-walk--select-actions
       '(("Select" . helm-org-walk--select-next-action)
         ("Previous" . helm-org-walk--select-previous-action)
+        ("Open" . helm-org-walk--select-open-action)
         ("Abort" . helm-org-walk--select-abort-action)))
 
 (defun helm-org-walk--select-next ()
@@ -131,10 +136,15 @@ execute BODY forms."
   (interactive)
   (helm-exit-and-execute-action 'helm-org-walk--select-abort-action))
 
+(defun helm-org-walk--select-open ()
+  (interactive)
+  (helm-exit-and-execute-action 'helm-org-walk--select-open-action))
+
 (setq helm-org-walk-select-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map helm-map)
     (define-key map (kbd "C-<backspace>") 'helm-org-walk--select-previous)
+    (define-key map (kbd "C-<return>") 'helm-org-walk--select-open)
     (define-key map (kbd "C-g") 'helm-org-walk--select-abort)
     map))
 
@@ -264,22 +274,21 @@ then inserts the element *under* the heading pointed to by the second olp
     (call-interactively 'org-cycle)))
 
 (cl-defun helm-org-walk (file-name &optional olp)
-  "Run helm-org-walk-recursive-select on FILE-NAME, starting from OLP
-or top-level, then visit the selected heading. Create selected
-file if it does not exist."
-  (interactive "P")
-  (let* ((is-org-buffer (and (not file-name) (eq 'org-mode major-mode)))
-         (is-prefixed (and file-name (listp file-name))))
-    (if is-org-buffer
-        (helm-org-walk--pick-go file-name olp)
-      (if is-prefixed
-          (-when-let (file-name (helm-org-walk--select-file) helm-input)
-            (helm-org-walk--pick-go file-name olp))
-        (when file-name
-          (if (file-directory-p file-name)
-              (-when-let (file-name (helm-org-walk--select-file file-name) helm-input)
-                (helm-org-walk--pick-go file-name olp))
-            (helm-org-walk--pick-go file-name olp)))))))
+    "Run helm-org-walk-recursive-select on FILE-NAME, starting from OLP
+  or top-level, then visit the selected heading. Create selected
+  file if it does not exist."
+    (interactive "P")
+    (let* ((is-org-buffer (and (not file-name) (eq 'org-mode major-mode)))
+           (is-prefixed (and file-name (listp file-name))))
+      (if is-org-buffer
+          (helm-org-walk--pick-go file-name olp)
+        (if is-prefixed
+            (-when-let (file-name (helm-org-walk--select-file) helm-input)
+              (when (not (or (file-directory-p file-name)
+                             (file-exists-p file-name)))
+                (helm-org-walk--pick-go file-name olp)))
+          (when file-name
+            (helm-org-walk--pick-go file-name olp))))))
 
 (defun helm-org-walk-refile-this (arg)
   (interactive "P")
