@@ -151,7 +151,7 @@ Boilerplate related to recursively running helm against files in org-directory.
 *** select-open-action
 #+begin_src emacs-lisp
   (cl-defun helm-org-walk--select-open-action ((path pick))
-    (find-file (concat episteme/org "/" (car path) "/" pick))
+    (find-file (concat org-directory "/" (car path) "/" pick))
     nil)
 #+end_src
 

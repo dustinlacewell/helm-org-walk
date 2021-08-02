@@ -115,7 +115,7 @@ execute BODY forms."
   (setq helm-input nil))
 
 (cl-defun helm-org-walk--select-open-action ((path pick))
-  (find-file (concat episteme/org "/" (car path) "/" pick))
+  (find-file (concat org-directory "/" (car path) "/" pick))
   nil)
 
 (setq helm-org-walk--select-actions
