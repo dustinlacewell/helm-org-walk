@@ -284,8 +284,7 @@ then inserts the element *under* the heading pointed to by the second olp
           (helm-org-walk--pick-go file-name olp)
         (if is-prefixed
             (-when-let (file-name (helm-org-walk--select-file) helm-input)
-              (when (not (or (file-directory-p file-name)
-                             (file-exists-p file-name)))
+              (when (not (file-directory-p file-name))
                 (helm-org-walk--pick-go file-name olp)))
           (when file-name
             (helm-org-walk--pick-go file-name olp))))))
