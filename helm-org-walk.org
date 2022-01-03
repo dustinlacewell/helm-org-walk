@@ -3,6 +3,7 @@
 * helm-org-walk
 ** preamble
 #+begin_src emacs-lisp
+  ;; -*-no-byte-compile: t; -*-
   ;;; helm-org-walk.el --- Helpful olp functions
 
   ;; Author: Dustin Lacewell <dlacewell@gmail.com>

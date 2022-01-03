@@ -1,3 +1,4 @@
+;; -*-no-byte-compile: t; -*-
 ;;; helm-org-walk.el --- Helpful olp functions
 
 ;; Author: Dustin Lacewell <dlacewell@gmail.com>
